@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Withdrawal Portal</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════ LOADING OVERLAY ═══════════ -->
+  <div id="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ═══════════ LOGIN SCREEN ═══════════ -->
+  <div id="screen-login" class="screen active">
+    <div style="text-align:center;">
+      <div class="login-badge">Secure Portal</div>
+      <div class="login-card">
+        <h1>Withdrawal Portal</h1>
+        <p class="subtitle">Sign in to access your account.</p>
+
+        <!-- Auth tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="signin"   onclick="switchAuthTab('signin')">Sign In</button>
+          <button class="auth-tab"        data-tab="register" onclick="switchAuthTab('register')">Create Account</button>
+          <button class="auth-tab"        data-tab="forgot"   onclick="switchAuthTab('forgot')">Forgot Password</button>
+        </div>
+
+        <!-- ── SIGN IN PANEL ── -->
+        <div class="auth-panel active" id="auth-panel-signin">
+          <div class="login-alert" id="signin-alert"></div>
+
+          <div class="form-group">
+            <label for="signin-email">Email Address</label>
+            <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+
+          <div class="form-group">
+            <label for="signin-password">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password" />
+              <button class="toggle-pw" type="button" onclick="togglePw('signin-password', this)" title="Show/hide">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <a class="forgot-link" onclick="switchAuthTab('forgot')">Forgot password?</a>
+
+          <button class="btn btn-primary" id="signin-btn" style="margin-top:4px;">
+            <div class="spinner" id="signin-spinner"></div>
+            <span id="signin-btn-text">Sign In</span>
+          </button>
+        </div>
+
+        <!-- ── CREATE ACCOUNT PANEL ── -->
+        <div class="auth-panel" id="auth-panel-register">
+          <div class="login-alert" id="register-alert"></div>
+
+          <div class="form-group">
+            <label for="register-email">Email Address</label>
+            <input type="email" id="register-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="register-password" placeholder="Minimum 6 characters" autocomplete="new-password" />
+              <button class="toggle-pw" type="button" onclick="togglePw('register-password', this)" title="Show/hide">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="register-confirm">Confirm Password</label>
+            <div class="password-wrap">
+              <input type="password" id="register-confirm" placeholder="Re-enter your password" autocomplete="new-password" />
+              <button class="toggle-pw" type="button" onclick="togglePw('register-confirm', this)" title="Show/hide">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="register-btn">
+            <div class="spinner" id="register-spinner"></div>
+            <span id="register-btn-text">Create Account</span>
+          </button>
+        </div>
+
+        <!-- ── FORGOT PASSWORD PANEL ── -->
+        <div class="auth-panel" id="auth-panel-forgot">
+          <div class="login-alert"   id="forgot-alert"></div>
+          <div class="login-success" id="forgot-success"></div>
+
+          <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:18px;text-align:left;">
+            Enter your email address and we'll send you a link to reset your password.
+          </p>
+
+          <div class="form-group">
+            <label for="forgot-email">Email Address</label>
+            <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+
+          <button class="btn btn-primary" id="forgot-btn">
+            <div class="spinner" id="forgot-spinner"></div>
+            <span id="forgot-btn-text">Send Reset Link</span>
+          </button>
+
+          <button class="btn btn-ghost" style="margin-top:10px;" onclick="switchAuthTab('signin')">
+            ← Back to Sign In
+          </button>
+        </div>
+
+        <!-- Admin access link -->
+        <div class="admin-link-wrap">
+          <span class="admin-link" onclick="openAdminModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Admin Login
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ WITHDRAWAL SCREEN ═══════════ -->
+  <div id="screen-withdrawal" class="screen" style="flex-direction:column;min-height:100vh;">
+
+    <div class="topbar">
+      <div class="topbar-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Withdrawal Portal
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-user" id="topbar-user"></span>
+        <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="withdrawal-body">
+      <div class="page-header">
+        <h1>Request a Withdrawal</h1>
+        <p>Choose your method and fill in the details below.</p>
+      </div>
+
+      <div class="card" style="width:100%;">
+        <!-- Tabs -->
+        <div class="tabs">
+          <div class="tab active" id="tab-bank" onclick="switchTab('bank')">
+            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10l9-7 9 7"/><line x1="12" y1="12" x2="12" y2="21"/>
+            </svg>
+            Bank Withdrawal
+          </div>
+          <div class="tab" id="tab-crypto" onclick="switchTab('crypto')">
+            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M9.5 9a3 3 0 0 1 5 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>
+            </svg>
+            Crypto Withdrawal
+          </div>
+        </div>
+
+        <div id="form-area">
+          <div class="form-wrapper">
+
+            <!-- Bank panel -->
+            <div class="panel active" id="panel-bank">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="full-name">Full Name</label>
+                  <input type="text" id="full-name" placeholder="John Smith" autocomplete="name" />
+                  <div class="field-error" id="err-full-name">Full name is required.</div>
+                </div>
+                <div class="form-group">
+                  <label for="bank-name">Bank Name</label>
+                  <input type="text" id="bank-name" placeholder="e.g. Chase, Barclays" />
+                  <div class="field-error" id="err-bank-name">Bank name is required.</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="account-number">Account Number</label>
+                <input type="text" id="account-number" placeholder="Enter your account number" inputmode="numeric" />
+                <div class="field-error" id="err-account-number">Account number is required.</div>
+              </div>
+              <div class="form-group">
+                <label for="routing-code">Routing / Sort Code <span class="optional">(optional)</span></label>
+                <input type="text" id="routing-code" placeholder="e.g. 021000021" />
+              </div>
+              <div class="divider"></div>
+              <div class="form-group">
+                <label for="bank-amount">Withdrawal Amount</label>
+                <div class="amount-wrapper">
+                  <span class="amount-prefix">$</span>
+                  <input type="number" id="bank-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" />
+                </div>
+                <div class="field-error" id="err-bank-amount">Please enter a valid amount.</div>
+              </div>
+              <button class="btn btn-primary" onclick="submitForm('bank')">
+                <div class="spinner" id="spinner-bank"></div>
+                <span id="btn-bank-text">Submit Withdrawal</span>
+              </button>
+            </div>
+
+            <!-- Crypto panel -->
+            <div class="panel" id="panel-crypto">
+              <div class="form-group">
+                <label for="wallet-address">Wallet Address</label>
+                <input type="text" id="wallet-address" placeholder="e.g. 0x1a2b3c4d..." autocomplete="off" />
+                <div class="field-error" id="err-wallet-address">Wallet address is required.</div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cryptocurrency">Cryptocurrency</label>
+                  <select id="cryptocurrency">
+                    <option value="" disabled selected>Select asset</option>
+                    <option>Bitcoin (BTC)</option>
+                    <option>Ethereum (ETH)</option>
+                    <option>Tether (USDT)</option>
+                    <option>USD Coin (USDC)</option>
+                    <option>BNB</option>
+                    <option>Solana (SOL)</option>
+                    <option>XRP</option>
+                    <option>Litecoin (LTC)</option>
+                  </select>
+                  <div class="field-error" id="err-cryptocurrency">Please select a cryptocurrency.</div>
+                </div>
+                <div class="form-group">
+                  <label for="network">Network</label>
+                  <select id="network">
+                    <option value="" disabled selected>Select network</option>
+                    <option>ERC-20 (Ethereum)</option>
+                    <option>TRC-20 (TRON)</option>
+                    <option>BEP-20 (BSC)</option>
+                    <option>Bitcoin Mainnet</option>
+                    <option>Solana</option>
+                    <option>Polygon (MATIC)</option>
+                    <option>Arbitrum</option>
+                    <option>Optimism</option>
+                  </select>
+                  <div class="field-error" id="err-network">Please select a network.</div>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="form-group">
+                <label for="crypto-amount">Withdrawal Amount</label>
+                <div class="amount-wrapper">
+                  <span class="amount-prefix">$</span>
+                  <input type="number" id="crypto-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" />
+                </div>
+                <div class="field-error" id="err-crypto-amount">Please enter a valid amount.</div>
+              </div>
+              <button class="btn btn-primary" onclick="submitForm('crypto')">
+                <div class="spinner" id="spinner-crypto"></div>
+                <span id="btn-crypto-text">Submit Withdrawal</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Confirmation -->
+        <div id="confirmation">
+          <div class="confirm-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="confirm-title">Withdrawal Request Submitted</div>
+          <div class="status-badge badge-pending">Pending Review</div>
+          <p class="confirm-message">Your withdrawal request has been received and is currently pending review. You will be notified once it has been processed.</p>
+          <div class="confirm-ref" id="confirm-ref">REF-XXXXXXXX</div><br/>
+          <button class="btn btn-ghost" style="width:auto;padding:11px 28px;margin-top:8px;" onclick="resetForm()">Submit Another Request</button>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Secured with 256-bit encryption
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ ADMIN SCREEN ═══════════ -->
+  <div id="screen-admin" class="screen" style="flex-direction:column;min-height:100vh;">
+
+    <div class="admin-topbar">
+      <div class="admin-brand">
+        <div class="admin-brand-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        Withdrawal Portal
+        <span class="admin-badge">Admin</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:13px;color:var(--text-muted);" id="admin-email-display"></span>
+        <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <div class="admin-header">
+        <div>
+          <h2>Withdrawal Requests</h2>
+          <p>Review and manage all submitted withdrawal requests.</p>
+        </div>
+        <button class="btn btn-ghost" style="width:auto;padding:9px 16px;font-size:13px;" onclick="renderAdmin()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="admin-stats">
+        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">—</div></div>
+        <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value pending">—</div></div>
+        <div class="stat-card"><div class="stat-label">Processing</div><div class="stat-value processing">—</div></div>
+        <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-value approved">—</div></div>
+        <div class="stat-card"><div class="stat-label">Declined</div><div class="stat-value declined">—</div></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all"        onclick="setFilter(this,'all')">All</button>
+        <button class="filter-btn"        data-filter="pending"    onclick="setFilter(this,'pending')">Pending</button>
+        <button class="filter-btn"        data-filter="processing" onclick="setFilter(this,'processing')">Processing</button>
+        <button class="filter-btn"        data-filter="approved"   onclick="setFilter(this,'approved')">Approved</button>
+        <button class="filter-btn"        data-filter="declined"   onclick="setFilter(this,'declined')">Declined</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" id="admin-table-wrap">
+        <div class="empty-state">No withdrawal requests yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ ADMIN LOGIN MODAL ═══════════ -->
+  <div class="modal-overlay" id="modal-admin-login">
+    <div class="modal">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;color:var(--accent);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Admin Login
+      </h3>
+      <p>Sign in with your admin credentials to access the dashboard.</p>
+
+      <div class="modal-alert" id="admin-modal-alert"></div>
+
+      <div class="form-group">
+        <label for="admin-modal-email">Admin Email</label>
+        <input type="email" id="admin-modal-email" placeholder="admin@example.com" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="admin-modal-password">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="admin-modal-password" placeholder="••••••••" autocomplete="off" />
+          <button class="toggle-pw" type="button" onclick="togglePw('admin-modal-password', this)" title="Show/hide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="btn btn-ghost" onclick="closeAdminModal()">Cancel</button>
+        <button class="btn btn-primary" id="admin-login-btn">
+          <div class="spinner" id="admin-login-spinner"></div>
+          <span id="admin-login-btn-text">Admin Sign In</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DECLINE MODAL ═══════════ -->
+  <div class="modal-overlay" id="modal-decline">
+    <div class="modal">
+      <h3>Decline Withdrawal</h3>
+      <p>Provide a reason for declining this request. The user will see this message.</p>
+      <textarea id="decline-reason" placeholder="e.g. Insufficient account verification, suspicious activity..."></textarea>
+      <div class="modal-err" id="decline-err">Please provide a reason for declining.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeDeclineModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDecline()">Decline Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ OTP MODAL ═══════════ -->
+  <div class="modal-overlay" id="modal-otp">
+    <div class="modal">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;color:var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Generate OTP
+      </h3>
+      <p>Generate a one-time password for this withdrawal request. Valid for 10 minutes.</p>
+
+      <div id="otp-display-area"></div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn btn-ghost" onclick="closeOtpModal()">Close</button>
+        <button class="btn btn-primary" onclick="generateAndShowOtp()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Generate New OTP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

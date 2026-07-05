@@ -1,0 +1,108 @@
+# Withdrawal Portal
+
+A single-page Firebase-powered withdrawal management portal with user and admin dashboards.
+
+## Project Structure
+
+```
+withdrawal-portal/
+├── index.html              ← Single HTML file (all screens/views)
+├── style.css               ← All styles
+├── script.js               ← All JavaScript (Firebase Auth + Firestore logic)
+├── firebase.js             ← Firebase SDK init and exports
+├── firestore.rules         ← Firestore security rules
+├── firebase.json           ← Firebase Hosting + Firestore config
+├── firestore.indexes.json  ← Firestore composite indexes
+├── functions/
+│   ├── index.js            ← Cloud Functions (status change hooks)
+│   └── package.json
+└── README.md
+```
+
+## Features
+
+### User Side
+- **Sign In** via Firebase Authentication
+- **Create Account** (email + password)
+- **Forgot Password** (sends reset email via Firebase)
+- **Bank Withdrawal** form (name, bank, account, routing, amount)
+- **Crypto Withdrawal** form (wallet, coin, network, amount)
+- Submissions stored in **Firestore** (`withdrawals` collection)
+- Unique reference ID generated per request
+
+### Admin Side
+- **Admin Login modal** — accessible via "Admin Login" link at the bottom of the login page
+- Admin access verified by checking the `admins` Firestore collection or the `ADMIN_EMAILS` list in `script.js`
+- **Dashboard statistics** — Total, Pending, Processing, Approved, Declined
+- **Filter** by status
+- **Actions per request**: Approve, Process, Pend, Decline (with reason), Generate OTP
+- **OTP generation** — 6-digit code saved to Firestore `otps` collection, valid 10 minutes
+
+## Firebase Setup
+
+### 1. Enable Authentication
+In the Firebase Console → Authentication → Sign-in method:
+- Enable **Email/Password**
+
+### 2. Add Admin User
+In Firestore → Database → Create collection `admins`:
+- Document ID: `yomawisdom55@gmail.com` (or any admin email)
+- No fields required (existence check is enough)
+
+Or edit `ADMIN_EMAILS` in `script.js` to add emails without Firestore:
+```js
+const ADMIN_EMAILS = ["yomawisdom55@gmail.com"];
+```
+
+### 3. Deploy Firestore Rules
+```bash
+firebase deploy --only firestore:rules
+```
+
+### 4. Deploy Indexes
+```bash
+firebase deploy --only firestore:indexes
+```
+
+### 5. Deploy Hosting
+```bash
+firebase deploy --only hosting
+```
+
+### 6. Deploy Everything
+```bash
+firebase deploy
+```
+
+## Local Development
+
+Since the app uses ES modules (`type="module"`), open it through a local server — not `file://`:
+
+```bash
+# Using Node.js serve
+npx serve .
+
+# Using Python
+python3 -m http.server 8080
+
+# Using Firebase CLI (recommended)
+firebase serve
+```
+
+Then open: `http://localhost:5000` (or the port shown)
+
+## Withdrawal Statuses
+
+| Status     | Meaning                        |
+|------------|--------------------------------|
+| Pending    | Awaiting admin review          |
+| Processing | Admin is actively processing   |
+| Approved   | Request approved               |
+| Declined   | Request declined (with reason) |
+
+## Security Notes
+
+- Firestore rules restrict users to reading/writing only their own withdrawals
+- Admins (verified by `admins` collection) can read and update all withdrawals
+- OTP records are admin-only in Firestore
+- Never expose admin credentials in client-side code in production — use Firebase custom claims for robust admin verification
