@@ -8,20 +8,22 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   collection, addDoc, getDocs, doc, updateDoc,
-  query, orderBy, where, serverTimestamp, getDoc, setDoc
+  query, orderBy, where, serverTimestamp, getDoc, setDoc,
+  Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ═══════════ ADMIN CONFIG ═══════════
-// Add admin emails to the Firestore `admins` collection OR list them here as fallback
 const ADMIN_EMAILS = ["yomawisdom55@gmail.com"];
 
 // ═══════════ STATE ═══════════
-let currentUser   = null;
-let isAdmin       = false;
-let currentTab    = "bank";
-let adminFilter   = "all";
-let declineTarget = null;
-let otpTarget     = null;
+let currentUser      = null;
+let isAdmin          = false;
+let currentTab       = "bank";
+let adminFilter      = "all";
+let declineTarget    = null;
+// Pending form data waiting for OTP confirmation
+let pendingFormType  = null;
+let pendingFormData  = null;
 
 // ═══════════ UTILITIES ═══════════
 function showScreen(id) {
@@ -36,7 +38,7 @@ function generateRef() {
   return r;
 }
 
-function generateOTP() {
+function generateOTPCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
@@ -124,64 +126,40 @@ async function doSignIn() {
   const email    = document.getElementById("signin-email").value.trim();
   const password = document.getElementById("signin-password").value;
   clearLoginAlerts();
+  if (!email || !password) { showLoginError("signin-alert", "Please enter your email and password."); return; }
 
-  if (!email || !password) {
-    showLoginError("signin-alert", "Please enter your email and password.");
-    return;
-  }
-
-  const btn     = document.getElementById("signin-btn");
+  const btn = document.getElementById("signin-btn");
   const spinner = document.getElementById("signin-spinner");
   const btnText = document.getElementById("signin-btn-text");
-  btn.disabled = true;
-  spinner.style.display = "block";
-  btnText.textContent = "Signing in…";
+  btn.disabled = true; spinner.style.display = "block"; btnText.textContent = "Signing in…";
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged handles redirect
   } catch (err) {
-    spinner.style.display = "none";
-    btnText.textContent = "Sign In";
-    btn.disabled = false;
+    spinner.style.display = "none"; btnText.textContent = "Sign In"; btn.disabled = false;
     showLoginError("signin-alert", firebaseErrorMsg(err.code));
   }
 }
 
 // ═══════════ CREATE ACCOUNT ═══════════
 async function doCreateAccount() {
-  const email    = document.getElementById("register-email").value.trim();
+  const email   = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
   const confirm  = document.getElementById("register-confirm").value;
   clearLoginAlerts();
+  if (!email || !password || !confirm) { showLoginError("register-alert", "Please fill in all fields."); return; }
+  if (password.length < 6) { showLoginError("register-alert", "Password must be at least 6 characters."); return; }
+  if (password !== confirm) { showLoginError("register-alert", "Passwords do not match."); return; }
 
-  if (!email || !password || !confirm) {
-    showLoginError("register-alert", "Please fill in all fields.");
-    return;
-  }
-  if (password.length < 6) {
-    showLoginError("register-alert", "Password must be at least 6 characters.");
-    return;
-  }
-  if (password !== confirm) {
-    showLoginError("register-alert", "Passwords do not match.");
-    return;
-  }
-
-  const btn     = document.getElementById("register-btn");
+  const btn = document.getElementById("register-btn");
   const spinner = document.getElementById("register-spinner");
   const btnText = document.getElementById("register-btn-text");
-  btn.disabled = true;
-  spinner.style.display = "block";
-  btnText.textContent = "Creating account…";
+  btn.disabled = true; spinner.style.display = "block"; btnText.textContent = "Creating account…";
 
   try {
     await createUserWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged handles redirect
   } catch (err) {
-    spinner.style.display = "none";
-    btnText.textContent = "Create Account";
-    btn.disabled = false;
+    spinner.style.display = "none"; btnText.textContent = "Create Account"; btn.disabled = false;
     showLoginError("register-alert", firebaseErrorMsg(err.code));
   }
 }
@@ -190,29 +168,19 @@ async function doCreateAccount() {
 async function doForgotPassword() {
   const email = document.getElementById("forgot-email").value.trim();
   clearLoginAlerts();
+  if (!email) { showLoginError("forgot-alert", "Please enter your email address."); return; }
 
-  if (!email) {
-    showLoginError("forgot-alert", "Please enter your email address.");
-    return;
-  }
-
-  const btn     = document.getElementById("forgot-btn");
+  const btn = document.getElementById("forgot-btn");
   const spinner = document.getElementById("forgot-spinner");
   const btnText = document.getElementById("forgot-btn-text");
-  btn.disabled = true;
-  spinner.style.display = "block";
-  btnText.textContent = "Sending…";
+  btn.disabled = true; spinner.style.display = "block"; btnText.textContent = "Sending…";
 
   try {
     await sendPasswordResetEmail(auth, email);
-    spinner.style.display = "none";
-    btnText.textContent = "Send Reset Link";
-    btn.disabled = false;
+    spinner.style.display = "none"; btnText.textContent = "Send Reset Link"; btn.disabled = false;
     showLoginSuccess("forgot-success", "Reset link sent! Check your inbox.");
   } catch (err) {
-    spinner.style.display = "none";
-    btnText.textContent = "Send Reset Link";
-    btn.disabled = false;
+    spinner.style.display = "none"; btnText.textContent = "Send Reset Link"; btn.disabled = false;
     showLoginError("forgot-alert", firebaseErrorMsg(err.code));
   }
 }
@@ -224,7 +192,6 @@ window.openAdminModal = function() {
   document.getElementById("admin-modal-email").value = "";
   document.getElementById("admin-modal-password").value = "";
 };
-
 window.closeAdminModal = function() {
   document.getElementById("modal-admin-login").classList.remove("open");
 };
@@ -234,33 +201,20 @@ async function doAdminLogin() {
   const password = document.getElementById("admin-modal-password").value;
   const alertEl  = document.getElementById("admin-modal-alert");
   alertEl.style.display = "none";
+  if (!email || !password) { alertEl.textContent = "Please enter your email and password."; alertEl.style.display = "block"; return; }
 
-  if (!email || !password) {
-    alertEl.textContent = "Please enter your email and password.";
-    alertEl.style.display = "block";
-    return;
-  }
-
-  const btn     = document.getElementById("admin-login-btn");
+  const btn = document.getElementById("admin-login-btn");
   const spinner = document.getElementById("admin-login-spinner");
   const btnText = document.getElementById("admin-login-btn-text");
-  btn.disabled = true;
-  spinner.style.display = "block";
-  btnText.textContent = "Signing in…";
+  btn.disabled = true; spinner.style.display = "block"; btnText.textContent = "Signing in…";
 
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const adminOk = await checkAdmin(cred.user.email);
-    if (!adminOk) {
-      await signOut(auth);
-      throw { code: "auth/not-admin" };
-    }
+    if (!adminOk) { await signOut(auth); throw { code: "auth/not-admin" }; }
     closeAdminModal();
-    // onAuthStateChanged will route to admin screen
   } catch (err) {
-    spinner.style.display = "none";
-    btnText.textContent = "Admin Sign In";
-    btn.disabled = false;
+    spinner.style.display = "none"; btnText.textContent = "Admin Sign In"; btn.disabled = false;
     alertEl.textContent = err.code === "auth/not-admin"
       ? "This account does not have admin privileges."
       : firebaseErrorMsg(err.code);
@@ -279,18 +233,17 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     isAdmin = await checkAdmin(user.email);
-
     if (isAdmin) {
       document.getElementById("admin-email-display").textContent = user.email;
       await renderAdmin();
       showScreen("admin");
     } else {
       document.getElementById("topbar-user").textContent = user.email;
+      await loadUserRequests();
       showScreen("withdrawal");
     }
   } else {
-    currentUser = null;
-    isAdmin = false;
+    currentUser = null; isAdmin = false;
     resetSignInForm();
     showScreen("login");
   }
@@ -305,13 +258,13 @@ function resetSignInForm() {
 
 function firebaseErrorMsg(code) {
   const map = {
-    "auth/user-not-found":       "No account found with this email.",
-    "auth/wrong-password":       "Incorrect password. Please try again.",
-    "auth/invalid-credential":   "Invalid email or password.",
-    "auth/email-already-in-use": "An account with this email already exists.",
-    "auth/weak-password":        "Password must be at least 6 characters.",
-    "auth/invalid-email":        "Please enter a valid email address.",
-    "auth/too-many-requests":    "Too many attempts. Please wait and try again.",
+    "auth/user-not-found":         "No account found with this email.",
+    "auth/wrong-password":         "Incorrect password. Please try again.",
+    "auth/invalid-credential":     "Invalid email or password.",
+    "auth/email-already-in-use":   "An account with this email already exists.",
+    "auth/weak-password":          "Password must be at least 6 characters.",
+    "auth/invalid-email":          "Please enter a valid email address.",
+    "auth/too-many-requests":      "Too many attempts. Please wait and try again.",
     "auth/network-request-failed": "Network error. Check your connection.",
   };
   return map[code] || "An error occurred. Please try again.";
@@ -334,10 +287,8 @@ function clearErrors() {
 }
 
 function setError(fieldId, errId) {
-  const f = document.getElementById(fieldId);
-  const e = document.getElementById(errId);
-  if (f) f.classList.add("error");
-  if (e) e.classList.add("visible");
+  const f = document.getElementById(fieldId); const e = document.getElementById(errId);
+  if (f) f.classList.add("error"); if (e) e.classList.add("visible");
 }
 
 function clearFieldError(el) {
@@ -358,9 +309,7 @@ function validateBank() {
     ["bank-name",      "err-bank-name",      v => v.trim().length > 0],
     ["account-number", "err-account-number", v => v.trim().length > 0],
     ["bank-amount",    "err-bank-amount",    v => parseFloat(v) > 0],
-  ].forEach(([f, e, t]) => {
-    if (!t(document.getElementById(f).value)) { setError(f, e); ok = false; }
-  });
+  ].forEach(([f, e, t]) => { if (!t(document.getElementById(f).value)) { setError(f, e); ok = false; } });
   return ok;
 }
 
@@ -371,69 +320,137 @@ function validateCrypto() {
     ["cryptocurrency", "err-cryptocurrency", v => v !== ""],
     ["network",        "err-network",        v => v !== ""],
     ["crypto-amount",  "err-crypto-amount",  v => parseFloat(v) > 0],
-  ].forEach(([f, e, t]) => {
-    if (!t(document.getElementById(f).value)) { setError(f, e); ok = false; }
-  });
+  ].forEach(([f, e, t]) => { if (!t(document.getElementById(f).value)) { setError(f, e); ok = false; } });
   return ok;
 }
 
-window.submitForm = async function(type) {
+// submitForm → collect data → open OTP modal → validate OTP → then actually save
+window.submitForm = function(type) {
   const valid = type === "bank" ? validateBank() : validateCrypto();
   if (!valid) return;
 
-  const spinner = document.getElementById("spinner-" + type);
-  const btnText = document.getElementById("btn-" + type + "-text");
-  const btn     = spinner.closest(".btn");
-  spinner.style.display = "block";
-  btnText.textContent = "Processing…";
-  btn.disabled = true;
+  let details = {};
+  if (type === "bank") {
+    details = {
+      fullName:      document.getElementById("full-name").value.trim(),
+      bankName:      document.getElementById("bank-name").value.trim(),
+      accountNumber: document.getElementById("account-number").value.trim(),
+      routingCode:   document.getElementById("routing-code").value.trim() || "—",
+      amount:        document.getElementById("bank-amount").value,
+    };
+  } else {
+    details = {
+      walletAddress:  document.getElementById("wallet-address").value.trim(),
+      cryptocurrency: document.getElementById("cryptocurrency").value,
+      network:        document.getElementById("network").value,
+      amount:         document.getElementById("crypto-amount").value,
+    };
+  }
+
+  pendingFormType = type;
+  pendingFormData = details;
+  openUserOtpModal();
+};
+
+// ═══════════ USER OTP VERIFICATION MODAL ═══════════
+function openUserOtpModal() {
+  document.getElementById("user-otp-input").value = "";
+  document.getElementById("user-otp-err").style.display = "none";
+  document.getElementById("user-otp-err").textContent = "";
+  document.getElementById("modal-user-otp").classList.add("open");
+  setTimeout(() => document.getElementById("user-otp-input").focus(), 150);
+}
+
+window.closeUserOtpModal = function() {
+  document.getElementById("modal-user-otp").classList.remove("open");
+  pendingFormType = null;
+  pendingFormData = null;
+};
+
+window.confirmUserOtp = async function() {
+  const code    = document.getElementById("user-otp-input").value.trim();
+  const errEl   = document.getElementById("user-otp-err");
+  const btn     = document.getElementById("user-otp-confirm-btn");
+  const spinner = document.getElementById("user-otp-spinner");
+  const btnText = document.getElementById("user-otp-btn-text");
+
+  errEl.style.display = "none";
+  if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+    errEl.textContent = "Please enter the 6-digit OTP code.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true; spinner.style.display = "block"; btnText.textContent = "Verifying…";
 
   try {
-    const ref = generateRef();
-    let details = {};
-    if (type === "bank") {
-      details = {
-        fullName:      document.getElementById("full-name").value.trim(),
-        bankName:      document.getElementById("bank-name").value.trim(),
-        accountNumber: document.getElementById("account-number").value.trim(),
-        routingCode:   document.getElementById("routing-code").value.trim() || "—",
-        amount:        document.getElementById("bank-amount").value,
-      };
-    } else {
-      details = {
-        walletAddress: document.getElementById("wallet-address").value.trim(),
-        cryptocurrency: document.getElementById("cryptocurrency").value,
-        network:       document.getElementById("network").value,
-        amount:        document.getElementById("crypto-amount").value,
-      };
+    // Query for an unused, non-expired OTP with matching code
+    const now = new Date();
+    const otpQuery = query(
+      collection(db, "otps"),
+      where("code", "==", code),
+      where("used", "==", false),
+      limit(1)
+    );
+    const snap = await getDocs(otpQuery);
+
+    if (snap.empty) {
+      throw new Error("Invalid or already-used OTP code.");
     }
 
+    const otpDoc  = snap.docs[0];
+    const otpData = otpDoc.data();
+
+    // Check expiry
+    const expiresAt = new Date(otpData.expiresAt);
+    if (now > expiresAt) {
+      throw new Error("This OTP has expired. Ask admin for a new code.");
+    }
+
+    // OTP valid — mark it used
+    await updateDoc(doc(db, "otps", otpDoc.id), { used: true, usedAt: serverTimestamp(), usedBy: currentUser.email });
+
+    // Now submit the withdrawal
+    const ref = generateRef();
     await addDoc(collection(db, "withdrawals"), {
       id:          ref,
-      type,
-      details,
+      type:        pendingFormType,
+      details:     pendingFormData,
       status:      "pending",
       reason:      "",
       uid:         currentUser.uid,
       submittedBy: currentUser.email,
       submittedAt: serverTimestamp(),
+      otpVerified: true,
     });
 
-    spinner.style.display = "none";
-    btnText.textContent = "Submit Withdrawal";
-    btn.disabled = false;
-
+    // Close modal and show confirmation
+    document.getElementById("modal-user-otp").classList.remove("open");
     document.getElementById("form-area").style.display = "none";
     document.getElementById("confirmation").style.display = "block";
     document.getElementById("confirm-ref").textContent = ref;
+    pendingFormType = null;
+    pendingFormData = null;
+
+    // Refresh user requests list
+    await loadUserRequests();
+
   } catch (err) {
-    console.error(err);
-    spinner.style.display = "none";
-    btnText.textContent = "Submit Withdrawal";
-    btn.disabled = false;
-    alert("Failed to submit. Please try again.");
+    errEl.textContent = err.message || "Verification failed. Try again.";
+    errEl.style.display = "block";
+  } finally {
+    btn.disabled = false; spinner.style.display = "none"; btnText.textContent = "Verify & Submit";
   }
 };
+
+document.getElementById("modal-user-otp").addEventListener("click", function(e) {
+  if (e.target === this) closeUserOtpModal();
+});
+
+// Enter key in OTP input
+document.getElementById("user-otp-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") confirmUserOtp();
+});
 
 window.resetForm = function() {
   document.getElementById("confirmation").style.display = "none";
@@ -442,6 +459,95 @@ window.resetForm = function() {
   document.querySelectorAll("#panel-bank select, #panel-crypto select").forEach(el => el.selectedIndex = 0);
   clearErrors();
   switchTab("bank");
+};
+
+// ═══════════ USER — MY REQUESTS ═══════════
+window.loadUserRequests = async function() {
+  const container = document.getElementById("user-requests-container");
+  if (!container) return;
+  container.innerHTML = `<div class="ur-loading"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px;"></div></div>`;
+
+  try {
+    const q = query(
+      collection(db, "withdrawals"),
+      where("uid", "==", currentUser.uid),
+      orderBy("submittedAt", "desc")
+    );
+    const snap = await getDocs(q);
+    const data = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+
+    if (data.length === 0) {
+      container.innerHTML = `<div class="ur-empty">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        No requests yet. Submit your first withdrawal above.
+      </div>`;
+      return;
+    }
+
+    const rows = data.map(r => {
+      const d = r.details || {};
+      const amount = parseFloat(d.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const typeIcon = r.type === "bank" ? "🏦" : "₿";
+      const typeLabel = r.type === "bank" ? "Bank" : "Crypto";
+      const badge = statusBadge(r.status || "pending");
+      const reasonHtml = r.status === "declined" && r.reason
+        ? `<div class="ur-reason">Reason: ${escHtml(r.reason)}</div>` : "";
+      return `
+        <div class="ur-item">
+          <div class="ur-left">
+            <div class="ur-type">${typeIcon} ${typeLabel}</div>
+            <div class="ur-ref">${escHtml(r.id || r._docId)}</div>
+            <div class="ur-date">${formatDate(r.submittedAt)}</div>
+          </div>
+          <div class="ur-right">
+            <div class="ur-amount">$${amount}</div>
+            <div>${badge}</div>
+            ${reasonHtml}
+          </div>
+        </div>`;
+    }).join("");
+
+    container.innerHTML = rows;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<div class="ur-empty">Failed to load requests. Check connection.</div>`;
+  }
+};
+
+// ═══════════ ADMIN — GENERATE OTP ═══════════
+window.adminGenerateOtp = async function() {
+  const code = generateOTPCode();
+  const now  = new Date();
+  const exp  = new Date(now.getTime() + 10 * 60 * 1000);
+
+  const btn     = document.getElementById("admin-gen-otp-btn");
+  const spinner = document.getElementById("admin-gen-otp-spinner");
+  const btnText = document.getElementById("admin-gen-otp-text");
+  btn.disabled = true; spinner.style.display = "inline-block"; btnText.textContent = "Generating…";
+
+  try {
+    const ref = await addDoc(collection(db, "otps"), {
+      code,
+      generatedAt: serverTimestamp(),
+      expiresAt:   exp.toISOString(),
+      used:        false,
+      generatedBy: currentUser.email,
+    });
+
+    // Show in the admin OTP display
+    document.getElementById("admin-otp-result").innerHTML = `
+      <div class="admin-otp-box">
+        <div class="admin-otp-label">Share this code with the user</div>
+        <div class="admin-otp-code">${code}</div>
+        <div class="admin-otp-meta">Valid for 10 minutes · Expires ${exp.toLocaleTimeString()}</div>
+      </div>`;
+    document.getElementById("admin-otp-result").style.display = "block";
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate OTP. Check Firestore rules.");
+  } finally {
+    btn.disabled = false; spinner.style.display = "none"; btnText.textContent = "Generate OTP";
+  }
 };
 
 // ═══════════ ADMIN PANEL ═══════════
@@ -458,7 +564,7 @@ window.renderAdmin = async function() {
     `<div class="empty-state"><div class="loading-spinner" style="margin:0 auto;"></div></div>`;
 
   try {
-    const q = query(collection(db, "withdrawals"), orderBy("submittedAt", "desc"));
+    const q    = query(collection(db, "withdrawals"), orderBy("submittedAt", "desc"));
     const snap = await getDocs(q);
     const data = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
     window._adminData = data;
@@ -488,9 +594,7 @@ function renderStats(data) {
 }
 
 function renderTable(allData) {
-  const data = adminFilter === "all"
-    ? allData
-    : allData.filter(r => r.status === adminFilter);
+  const data = adminFilter === "all" ? allData : allData.filter(r => r.status === adminFilter);
   const wrap = document.getElementById("admin-table-wrap");
 
   if (data.length === 0) {
@@ -506,41 +610,38 @@ function renderTable(allData) {
     const nameOrWallet = r.type === "bank"
       ? escHtml(d.fullName || "")
       : `<span style="font-family:monospace;font-size:12px;">${escHtml((d.walletAddress || "").slice(0, 14))}…</span>`;
-
     const info = r.type === "bank"
       ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${escHtml(d.bankName || "")} · ${escHtml(d.accountNumber || "")}</div>`
       : `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${escHtml(d.cryptocurrency || "")} · ${escHtml(d.network || "")}</div>`;
-
     const typeBadge = r.type === "bank"
       ? `<span class="td-type type-bank">🏦 Bank</span>`
       : `<span class="td-type type-crypto">₿ Crypto</span>`;
-
     const badge = statusBadge(r.status || "pending");
     const reasonRow = r.status === "declined" && r.reason
-      ? `<div class="td-reason">Reason: ${escHtml(r.reason)}</div>`
-      : "";
+      ? `<div class="td-reason">Reason: ${escHtml(r.reason)}</div>` : "";
 
+    const docId       = escHtml(r._docId);
     const approveDis  = r.status === "approved"   ? "disabled" : "";
     const pendDis     = r.status === "pending"    ? "disabled" : "";
     const processDis  = r.status === "processing" ? "disabled" : "";
     const declineDis  = r.status === "declined"   ? "disabled" : "";
 
-    const docId = escHtml(r._docId);
     return `<tr>
       <td class="td-ref">${escHtml(r.id || r._docId)}</td>
       <td>${typeBadge}</td>
-      <td><div class="td-name">${nameOrWallet}</div>${info}
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(r.submittedBy || "")}</div></td>
+      <td>
+        <div class="td-name">${nameOrWallet}</div>${info}
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(r.submittedBy || "")}</div>
+      </td>
       <td class="td-amount">$${parseFloat(d.amount || 0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
       <td><div>${badge}</div>${reasonRow}</td>
       <td style="font-size:12px;color:var(--text-muted);">${formatDate(r.submittedAt)}</td>
       <td>
         <div class="action-btns">
-          <button class="action-btn btn-approve"  ${approveDis}  onclick="updateStatus('${docId}','approved')">✓ Approve</button>
-          <button class="action-btn btn-process"  ${processDis}  onclick="updateStatus('${docId}','processing')">⟳ Process</button>
-          <button class="action-btn btn-pend"     ${pendDis}     onclick="updateStatus('${docId}','pending')">⏸ Pend</button>
-          <button class="action-btn btn-decline"  ${declineDis}  onclick="openDeclineModal('${docId}')">✕ Decline</button>
-          <button class="action-btn btn-otp"                     onclick="openOtpModal('${docId}')">🔑 OTP</button>
+          <button class="action-btn btn-approve" ${approveDis} onclick="updateStatus('${docId}','approved')">✓ Approve</button>
+          <button class="action-btn btn-process" ${processDis} onclick="updateStatus('${docId}','processing')">⟳ Process</button>
+          <button class="action-btn btn-pend"    ${pendDis}    onclick="updateStatus('${docId}','pending')">⏸ Pend</button>
+          <button class="action-btn btn-decline" ${declineDis} onclick="openDeclineModal('${docId}')">✕ Decline</button>
         </div>
       </td>
     </tr>`;
@@ -549,13 +650,8 @@ function renderTable(allData) {
   wrap.innerHTML = `<table>
     <thead>
       <tr>
-        <th>Ref ID</th>
-        <th>Type</th>
-        <th>Account Details</th>
-        <th>Amount</th>
-        <th>Status</th>
-        <th>Submitted</th>
-        <th>Actions</th>
+        <th>Ref ID</th><th>Type</th><th>Account Details</th>
+        <th>Amount</th><th>Status</th><th>Submitted</th><th>Actions</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -581,12 +677,10 @@ window.openDeclineModal = function(docId) {
   document.getElementById("decline-err").classList.remove("visible");
   document.getElementById("modal-decline").classList.add("open");
 };
-
 window.closeDeclineModal = function() {
   document.getElementById("modal-decline").classList.remove("open");
   declineTarget = null;
 };
-
 window.confirmDecline = async function() {
   const reason = document.getElementById("decline-reason").value.trim();
   if (!reason) {
@@ -603,69 +697,21 @@ window.confirmDecline = async function() {
     alert("Failed to decline. Check your permissions.");
   }
 };
-
 document.getElementById("modal-decline").addEventListener("click", function(e) {
   if (e.target === this) closeDeclineModal();
 });
 
-// ═══════════ OTP MODAL ═══════════
-window.openOtpModal = function(docId) {
-  otpTarget = docId;
-  document.getElementById("otp-display-area").innerHTML = "";
-  document.getElementById("modal-otp").classList.add("open");
-};
-
-window.closeOtpModal = function() {
-  document.getElementById("modal-otp").classList.remove("open");
-  otpTarget = null;
-};
-
-window.generateAndShowOtp = async function() {
-  const code = generateOTP();
-  const now  = new Date();
-  const exp  = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
-
-  try {
-    await setDoc(doc(db, "otps", otpTarget), {
-      code,
-      withdrawalId: otpTarget,
-      generatedAt: serverTimestamp(),
-      expiresAt: exp.toISOString(),
-      generatedBy: currentUser.email,
-    });
-
-    document.getElementById("otp-display-area").innerHTML = `
-      <div class="otp-display">
-        <div class="otp-code">${code}</div>
-        <div class="otp-meta">Valid for 10 minutes · Expires at ${exp.toLocaleTimeString()}</div>
-      </div>
-    `;
-  } catch (err) {
-    console.error(err);
-    document.getElementById("otp-display-area").innerHTML =
-      `<p style="color:var(--error);font-size:13px;margin-top:12px;">Failed to save OTP. Check Firestore rules.</p>`;
-  }
-};
-
-document.getElementById("modal-otp").addEventListener("click", function(e) {
-  if (e.target === this) closeOtpModal();
-});
-
 // ═══════════ EVENT LISTENERS ═══════════
-// Sign in
 document.getElementById("signin-btn").addEventListener("click", doSignIn);
 document.getElementById("signin-password").addEventListener("keydown", e => { if (e.key === "Enter") doSignIn(); });
 document.getElementById("signin-email").addEventListener("keydown", e => { if (e.key === "Enter") doSignIn(); });
 
-// Create account
 document.getElementById("register-btn").addEventListener("click", doCreateAccount);
 document.getElementById("register-confirm").addEventListener("keydown", e => { if (e.key === "Enter") doCreateAccount(); });
 
-// Forgot password
 document.getElementById("forgot-btn").addEventListener("click", doForgotPassword);
 document.getElementById("forgot-email").addEventListener("keydown", e => { if (e.key === "Enter") doForgotPassword(); });
 
-// Admin login modal
 document.getElementById("admin-login-btn").addEventListener("click", doAdminLogin);
 document.getElementById("admin-modal-password").addEventListener("keydown", e => { if (e.key === "Enter") doAdminLogin(); });
 document.getElementById("modal-admin-login").addEventListener("click", function(e) {

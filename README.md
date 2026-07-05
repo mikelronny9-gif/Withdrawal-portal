@@ -38,38 +38,45 @@ withdrawal-portal/
 - **Actions per request**: Approve, Process, Pend, Decline (with reason), Generate OTP
 - **OTP generation** — 6-digit code saved to Firestore `otps` collection, valid 10 minutes
 
-## Firebase Setup
+## Firebase Setup (One-Time)
 
-### 1. Enable Authentication
-In the Firebase Console → Authentication → Sign-in method:
-- Enable **Email/Password**
+### Step 1 — Enable Email/Password Authentication
+1. Go to [Firebase Console](https://console.firebase.google.com/) → your project `withdrawal-app-46485`
+2. Click **Authentication** in the left sidebar
+3. Click the **Sign-in method** tab
+4. Click **Email/Password** → toggle **Enable** → Save
 
-### 2. Add Admin User
-In Firestore → Database → Create collection `admins`:
-- Document ID: `yomawisdom55@gmail.com` (or any admin email)
-- No fields required (existence check is enough)
+### Step 2 — Create the Admin Account
+1. Still in **Authentication**, click the **Users** tab
+2. Click **Add user**
+3. Enter:
+   - **Email:** `yomawisdom55@gmail.com`
+   - **Password:** `mamaboy12`
+4. Click **Add user**
 
-Or edit `ADMIN_EMAILS` in `script.js` to add emails without Firestore:
-```js
-const ADMIN_EMAILS = ["yomawisdom55@gmail.com"];
-```
+> ⚠️ The password is only stored in Firebase Authentication — it is never written in any code file. This is intentional and secure.
 
-### 3. Deploy Firestore Rules
+### Step 3 — Register Admin Email in Firestore
+1. Go to **Firestore Database** in the Firebase Console
+2. Click **Start collection** → Collection ID: `admins`
+3. Add a document:
+   - **Document ID:** `yomawisdom55@gmail.com`
+   - No fields needed — just the document ID
+4. Click **Save**
+
+> This is what grants admin privileges. Any user whose email exists in this collection gets admin access after login.
+
+### Step 4 — Deploy Firestore Rules & Indexes
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore
 ```
 
-### 4. Deploy Indexes
-```bash
-firebase deploy --only firestore:indexes
-```
-
-### 5. Deploy Hosting
+### Step 5 — Deploy Hosting
 ```bash
 firebase deploy --only hosting
 ```
 
-### 6. Deploy Everything
+### Step 6 — Deploy Everything at Once
 ```bash
 firebase deploy
 ```

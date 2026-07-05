@@ -21,100 +21,85 @@
         <h1>Withdrawal Portal</h1>
         <p class="subtitle">Sign in to access your account.</p>
 
-        <!-- Auth tabs -->
         <div class="auth-tabs">
           <button class="auth-tab active" data-tab="signin"   onclick="switchAuthTab('signin')">Sign In</button>
           <button class="auth-tab"        data-tab="register" onclick="switchAuthTab('register')">Create Account</button>
           <button class="auth-tab"        data-tab="forgot"   onclick="switchAuthTab('forgot')">Forgot Password</button>
         </div>
 
-        <!-- ── SIGN IN PANEL ── -->
+        <!-- SIGN IN -->
         <div class="auth-panel active" id="auth-panel-signin">
           <div class="login-alert" id="signin-alert"></div>
-
           <div class="form-group">
             <label for="signin-email">Email Address</label>
             <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email" />
           </div>
-
           <div class="form-group">
             <label for="signin-password">Password</label>
             <div class="password-wrap">
               <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password" />
-              <button class="toggle-pw" type="button" onclick="togglePw('signin-password', this)" title="Show/hide">
+              <button class="toggle-pw" type="button" onclick="togglePw('signin-password',this)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
           </div>
-
           <a class="forgot-link" onclick="switchAuthTab('forgot')">Forgot password?</a>
-
           <button class="btn btn-primary" id="signin-btn" style="margin-top:4px;">
             <div class="spinner" id="signin-spinner"></div>
             <span id="signin-btn-text">Sign In</span>
           </button>
         </div>
 
-        <!-- ── CREATE ACCOUNT PANEL ── -->
+        <!-- CREATE ACCOUNT -->
         <div class="auth-panel" id="auth-panel-register">
           <div class="login-alert" id="register-alert"></div>
-
           <div class="form-group">
             <label for="register-email">Email Address</label>
             <input type="email" id="register-email" placeholder="you@example.com" autocomplete="email" />
           </div>
-
           <div class="form-group">
             <label for="register-password">Password</label>
             <div class="password-wrap">
               <input type="password" id="register-password" placeholder="Minimum 6 characters" autocomplete="new-password" />
-              <button class="toggle-pw" type="button" onclick="togglePw('register-password', this)" title="Show/hide">
+              <button class="toggle-pw" type="button" onclick="togglePw('register-password',this)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
           </div>
-
           <div class="form-group">
             <label for="register-confirm">Confirm Password</label>
             <div class="password-wrap">
               <input type="password" id="register-confirm" placeholder="Re-enter your password" autocomplete="new-password" />
-              <button class="toggle-pw" type="button" onclick="togglePw('register-confirm', this)" title="Show/hide">
+              <button class="toggle-pw" type="button" onclick="togglePw('register-confirm',this)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
           </div>
-
           <button class="btn btn-primary" id="register-btn">
             <div class="spinner" id="register-spinner"></div>
             <span id="register-btn-text">Create Account</span>
           </button>
         </div>
 
-        <!-- ── FORGOT PASSWORD PANEL ── -->
+        <!-- FORGOT PASSWORD -->
         <div class="auth-panel" id="auth-panel-forgot">
           <div class="login-alert"   id="forgot-alert"></div>
           <div class="login-success" id="forgot-success"></div>
-
           <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:18px;text-align:left;">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email and we'll send a password reset link.
           </p>
-
           <div class="form-group">
             <label for="forgot-email">Email Address</label>
             <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" />
           </div>
-
           <button class="btn btn-primary" id="forgot-btn">
             <div class="spinner" id="forgot-spinner"></div>
             <span id="forgot-btn-text">Send Reset Link</span>
           </button>
-
-          <button class="btn btn-ghost" style="margin-top:10px;" onclick="switchAuthTab('signin')">
-            ← Back to Sign In
-          </button>
+          <button class="btn btn-ghost" style="margin-top:10px;" onclick="switchAuthTab('signin')">← Back to Sign In</button>
         </div>
 
-        <!-- Admin access link -->
+        <!-- Admin link -->
         <div class="admin-link-wrap">
           <span class="admin-link" onclick="openAdminModal()">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -145,19 +130,20 @@
         <p>Choose your method and fill in the details below.</p>
       </div>
 
+      <!-- OTP notice banner -->
+      <div class="otp-notice" style="width:100%;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+        <span>An <strong>OTP code</strong> from admin is required to submit a withdrawal request. Contact the admin to get your code before submitting.</span>
+      </div>
+
       <div class="card" style="width:100%;">
-        <!-- Tabs -->
         <div class="tabs">
           <div class="tab active" id="tab-bank" onclick="switchTab('bank')">
-            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10l9-7 9 7"/><line x1="12" y1="12" x2="12" y2="21"/>
-            </svg>
+            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M3 10l9-7 9 7"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
             Bank Withdrawal
           </div>
           <div class="tab" id="tab-crypto" onclick="switchTab('crypto')">
-            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"/><path d="M9.5 9a3 3 0 0 1 5 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>
-            </svg>
+            <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a3 3 0 0 1 5 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
             Crypto Withdrawal
           </div>
         </div>
@@ -256,22 +242,36 @@
                 <span id="btn-crypto-text">Submit Withdrawal</span>
               </button>
             </div>
-
           </div>
         </div>
 
         <!-- Confirmation -->
         <div id="confirmation">
           <div class="confirm-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div class="confirm-title">Withdrawal Request Submitted</div>
           <div class="status-badge badge-pending">Pending Review</div>
-          <p class="confirm-message">Your withdrawal request has been received and is currently pending review. You will be notified once it has been processed.</p>
+          <p class="confirm-message">Your withdrawal request has been received and is currently pending review. You can track its status below.</p>
           <div class="confirm-ref" id="confirm-ref">REF-XXXXXXXX</div><br/>
           <button class="btn btn-ghost" style="width:auto;padding:11px 28px;margin-top:8px;" onclick="resetForm()">Submit Another Request</button>
+        </div>
+      </div>
+
+      <!-- ─── MY REQUESTS (status tracker) ─── -->
+      <div class="user-requests-card" style="width:100%;">
+        <div class="ur-header">
+          <div>
+            <div class="ur-title">My Requests</div>
+            <div class="ur-subtitle">Live status of your withdrawal requests</div>
+          </div>
+          <button class="ur-refresh" onclick="loadUserRequests()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div id="user-requests-container">
+          <div class="ur-empty">Loading…</div>
         </div>
       </div>
 
@@ -300,16 +300,28 @@
     </div>
 
     <div class="admin-body">
+
+      <!-- Admin header + Generate OTP -->
       <div class="admin-header">
         <div>
           <h2>Withdrawal Requests</h2>
           <p>Review and manage all submitted withdrawal requests.</p>
         </div>
-        <button class="btn btn-ghost" style="width:auto;padding:9px 16px;font-size:13px;" onclick="renderAdmin()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Refresh
-        </button>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+          <button class="btn-otp-gen" id="admin-gen-otp-btn" onclick="adminGenerateOtp()">
+            <span class="spinner-dark" id="admin-gen-otp-spinner" style="display:none;"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span id="admin-gen-otp-text">Generate OTP</span>
+          </button>
+          <button class="btn btn-ghost" style="width:auto;padding:9px 16px;font-size:13px;" onclick="renderAdmin()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
       </div>
+
+      <!-- OTP result display -->
+      <div id="admin-otp-result" style="display:none;margin-bottom:24px;"></div>
 
       <!-- Stats -->
       <div class="stats-grid" id="admin-stats">
@@ -322,11 +334,11 @@
 
       <!-- Filters -->
       <div class="filter-bar">
-        <button class="filter-btn active" data-filter="all"        onclick="setFilter(this,'all')">All</button>
-        <button class="filter-btn"        data-filter="pending"    onclick="setFilter(this,'pending')">Pending</button>
-        <button class="filter-btn"        data-filter="processing" onclick="setFilter(this,'processing')">Processing</button>
-        <button class="filter-btn"        data-filter="approved"   onclick="setFilter(this,'approved')">Approved</button>
-        <button class="filter-btn"        data-filter="declined"   onclick="setFilter(this,'declined')">Declined</button>
+        <button class="filter-btn active" onclick="setFilter(this,'all')">All</button>
+        <button class="filter-btn" onclick="setFilter(this,'pending')">Pending</button>
+        <button class="filter-btn" onclick="setFilter(this,'processing')">Processing</button>
+        <button class="filter-btn" onclick="setFilter(this,'approved')">Approved</button>
+        <button class="filter-btn" onclick="setFilter(this,'declined')">Declined</button>
       </div>
 
       <!-- Table -->
@@ -344,9 +356,7 @@
         Admin Login
       </h3>
       <p>Sign in with your admin credentials to access the dashboard.</p>
-
       <div class="modal-alert" id="admin-modal-alert"></div>
-
       <div class="form-group">
         <label for="admin-modal-email">Admin Email</label>
         <input type="email" id="admin-modal-email" placeholder="admin@example.com" autocomplete="off" />
@@ -355,12 +365,11 @@
         <label for="admin-modal-password">Password</label>
         <div class="password-wrap">
           <input type="password" id="admin-modal-password" placeholder="••••••••" autocomplete="off" />
-          <button class="toggle-pw" type="button" onclick="togglePw('admin-modal-password', this)" title="Show/hide">
+          <button class="toggle-pw" type="button" onclick="togglePw('admin-modal-password',this)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
-
       <div class="modal-actions" style="margin-top:20px;">
         <button class="btn btn-ghost" onclick="closeAdminModal()">Cancel</button>
         <button class="btn btn-primary" id="admin-login-btn">
@@ -371,37 +380,49 @@
     </div>
   </div>
 
+  <!-- ═══════════ USER OTP VERIFICATION MODAL ═══════════ -->
+  <div class="modal-overlay" id="modal-user-otp">
+    <div class="modal" style="max-width:380px;">
+      <div class="otp-modal-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3 style="text-align:center;margin-bottom:6px;">Enter OTP Code</h3>
+      <p style="text-align:center;">Enter the 6-digit code provided by the admin to verify and submit your request.</p>
+
+      <div class="otp-input-wrap">
+        <input
+          class="otp-big-input"
+          type="text"
+          id="user-otp-input"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="······"
+          autocomplete="one-time-code"
+        />
+      </div>
+
+      <p id="user-otp-err" style="display:none;color:var(--error);font-size:13px;margin-top:10px;text-align:center;"></p>
+
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="btn btn-ghost" onclick="closeUserOtpModal()">Cancel</button>
+        <button class="btn btn-primary" id="user-otp-confirm-btn" onclick="confirmUserOtp()">
+          <div class="spinner" id="user-otp-spinner"></div>
+          <span id="user-otp-btn-text">Verify &amp; Submit</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ DECLINE MODAL ═══════════ -->
   <div class="modal-overlay" id="modal-decline">
     <div class="modal">
       <h3>Decline Withdrawal</h3>
       <p>Provide a reason for declining this request. The user will see this message.</p>
-      <textarea id="decline-reason" placeholder="e.g. Insufficient account verification, suspicious activity..."></textarea>
+      <textarea id="decline-reason" placeholder="e.g. Insufficient verification, suspicious activity…"></textarea>
       <div class="modal-err" id="decline-err">Please provide a reason for declining.</div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeDeclineModal()">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDecline()">Decline Request</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════ OTP MODAL ═══════════ -->
-  <div class="modal-overlay" id="modal-otp">
-    <div class="modal">
-      <h3>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;color:var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Generate OTP
-      </h3>
-      <p>Generate a one-time password for this withdrawal request. Valid for 10 minutes.</p>
-
-      <div id="otp-display-area"></div>
-
-      <div class="modal-actions" style="margin-top:16px;">
-        <button class="btn btn-ghost" onclick="closeOtpModal()">Close</button>
-        <button class="btn btn-primary" onclick="generateAndShowOtp()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Generate New OTP
-        </button>
       </div>
     </div>
   </div>
