@@ -130,12 +130,6 @@
         <p>Choose your method and fill in the details below.</p>
       </div>
 
-      <!-- OTP notice banner -->
-      <div class="otp-notice" style="width:100%;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-        <span>An <strong>OTP code</strong> from admin is required to submit a withdrawal request. Contact the admin to get your code before submitting.</span>
-      </div>
-
       <div class="card" style="width:100%;">
         <div class="tabs">
           <div class="tab active" id="tab-bank" onclick="switchTab('bank')">
@@ -386,8 +380,12 @@
       <div class="otp-modal-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <h3 style="text-align:center;margin-bottom:6px;">Enter OTP Code</h3>
-      <p style="text-align:center;">Enter the 6-digit code provided by the admin to verify and submit your request.</p>
+      <h3 style="text-align:center;margin-bottom:8px;">Enter OTP Code</h3>
+      <p style="text-align:center;margin-bottom:8px;font-size:14px;">An OTP code is required to submit a withdrawal request.</p>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;text-align:center;margin-bottom:4px;">
+        <span style="font-size:13px;color:#f59e0b;font-weight:600;">⏱ You have 10 minutes to get the OTP from admin before it expires.</span>
+      </div>
+      <p style="text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:6px;">Enter the 6-digit code provided by the admin below.</p>
 
       <div class="otp-input-wrap">
         <input

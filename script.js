@@ -8,22 +8,22 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   collection, addDoc, getDocs, doc, updateDoc,
-  query, orderBy, where, serverTimestamp, getDoc, setDoc,
-  Timestamp, limit
+  query, where, serverTimestamp, getDoc,
+  limit, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ═══════════ ADMIN CONFIG ═══════════
 const ADMIN_EMAILS = ["yomawisdom55@gmail.com"];
 
 // ═══════════ STATE ═══════════
-let currentUser      = null;
-let isAdmin          = false;
-let currentTab       = "bank";
-let adminFilter      = "all";
-let declineTarget    = null;
-// Pending form data waiting for OTP confirmation
-let pendingFormType  = null;
-let pendingFormData  = null;
+let currentUser         = null;
+let isAdmin             = false;
+let currentTab          = "bank";
+let adminFilter         = "all";
+let declineTarget       = null;
+let pendingFormType     = null;
+let pendingFormData     = null;
+let userRequestsUnsub   = null;  // real-time listener cleanup
 
 // ═══════════ UTILITIES ═══════════
 function showScreen(id) {
@@ -224,6 +224,7 @@ async function doAdminLogin() {
 
 // ═══════════ LOGOUT ═══════════
 window.doLogout = async function() {
+  if (userRequestsUnsub) { userRequestsUnsub(); userRequestsUnsub = null; }
   await signOut(auth);
 };
 
@@ -412,7 +413,7 @@ window.confirmUserOtp = async function() {
 
     // Now submit the withdrawal
     const ref = generateRef();
-    await addDoc(collection(db, "withdrawals"), {
+    const docRef = await addDoc(collection(db, "withdrawals"), {
       id:          ref,
       type:        pendingFormType,
       details:     pendingFormData,
@@ -424,6 +425,14 @@ window.confirmUserOtp = async function() {
       otpVerified: true,
     });
 
+    // Save docId to localStorage so "My Requests" can track it
+    const lsKey = `wp_reqs_${currentUser.uid}`;
+    const savedIds = JSON.parse(localStorage.getItem(lsKey) || "[]");
+    if (!savedIds.includes(docRef.id)) {
+      savedIds.unshift(docRef.id);
+      localStorage.setItem(lsKey, JSON.stringify(savedIds));
+    }
+
     // Close modal and show confirmation
     document.getElementById("modal-user-otp").classList.remove("open");
     document.getElementById("form-area").style.display = "none";
@@ -433,7 +442,7 @@ window.confirmUserOtp = async function() {
     pendingFormData = null;
 
     // Refresh user requests list
-    await loadUserRequests();
+    loadUserRequests();
 
   } catch (err) {
     errEl.textContent = err.message || "Verification failed. Try again.";
@@ -461,57 +470,96 @@ window.resetForm = function() {
   switchTab("bank");
 };
 
-// ═══════════ USER — MY REQUESTS ═══════════
-window.loadUserRequests = async function() {
+// ═══════════ USER — MY REQUESTS (real-time listener) ═══════════
+function renderUserRequests(data) {
   const container = document.getElementById("user-requests-container");
   if (!container) return;
+
+  if (data.length === 0) {
+    container.innerHTML = `<div class="ur-empty">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      No requests yet. Submit your first withdrawal above.
+    </div>`;
+    return;
+  }
+
+  const rows = data.map(r => {
+    const d      = r.details || {};
+    const amount = parseFloat(d.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const typeIcon  = r.type === "bank" ? "🏦" : "₿";
+    const typeLabel = r.type === "bank" ? "Bank" : "Crypto";
+    const badge     = statusBadge(r.status || "pending");
+    const reasonHtml = (r.status === "declined" && r.reason)
+      ? `<div class="ur-reason">Reason: ${escHtml(r.reason)}</div>` : "";
+    return `
+      <div class="ur-item">
+        <div class="ur-left">
+          <div class="ur-type">${typeIcon} ${typeLabel}</div>
+          <div class="ur-ref">${escHtml(r.id || r._docId)}</div>
+          <div class="ur-date">${formatDate(r.submittedAt)}</div>
+        </div>
+        <div class="ur-right">
+          <div class="ur-amount">$${amount}</div>
+          <div>${badge}</div>
+          ${reasonHtml}
+        </div>
+      </div>`;
+  }).join("");
+
+  container.innerHTML = rows;
+}
+
+// ── loadUserRequests ──
+// Uses localStorage (keyed by uid) to store docIds, then sets up a
+// per-document onSnapshot for each one. This uses "get" permission only,
+// which works with ANY version of the Firestore rules — no "list" rule needed.
+window.loadUserRequests = function() {
+  // Cancel all existing listeners
+  if (userRequestsUnsub) { userRequestsUnsub(); userRequestsUnsub = null; }
+
+  const container = document.getElementById("user-requests-container");
+  if (!container || !currentUser) return;
+
+  const lsKey  = `wp_reqs_${currentUser.uid}`;
+  const docIds = JSON.parse(localStorage.getItem(lsKey) || "[]");
+
+  if (docIds.length === 0) {
+    container.innerHTML = `<div class="ur-empty">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      No requests yet. Submit your first withdrawal above.
+    </div>`;
+    return;
+  }
+
   container.innerHTML = `<div class="ur-loading"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px;"></div></div>`;
 
-  try {
-    const q = query(
-      collection(db, "withdrawals"),
-      where("uid", "==", currentUser.uid),
-      orderBy("submittedAt", "desc")
-    );
-    const snap = await getDocs(q);
-    const data = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+  // Live map of docId → data; re-renders on every change
+  const requestsMap = {};
+  const allUnsubs   = [];
 
-    if (data.length === 0) {
-      container.innerHTML = `<div class="ur-empty">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        No requests yet. Submit your first withdrawal above.
-      </div>`;
-      return;
-    }
-
-    const rows = data.map(r => {
-      const d = r.details || {};
-      const amount = parseFloat(d.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const typeIcon = r.type === "bank" ? "🏦" : "₿";
-      const typeLabel = r.type === "bank" ? "Bank" : "Crypto";
-      const badge = statusBadge(r.status || "pending");
-      const reasonHtml = r.status === "declined" && r.reason
-        ? `<div class="ur-reason">Reason: ${escHtml(r.reason)}</div>` : "";
-      return `
-        <div class="ur-item">
-          <div class="ur-left">
-            <div class="ur-type">${typeIcon} ${typeLabel}</div>
-            <div class="ur-ref">${escHtml(r.id || r._docId)}</div>
-            <div class="ur-date">${formatDate(r.submittedAt)}</div>
-          </div>
-          <div class="ur-right">
-            <div class="ur-amount">$${amount}</div>
-            <div>${badge}</div>
-            ${reasonHtml}
-          </div>
-        </div>`;
-    }).join("");
-
-    container.innerHTML = rows;
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = `<div class="ur-empty">Failed to load requests. Check connection.</div>`;
+  function rerender() {
+    const data = Object.values(requestsMap)
+      .sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0));
+    renderUserRequests(data);
   }
+
+  // Subscribe to each document individually — uses "get" permission (always allowed)
+  docIds.forEach(docId => {
+    const unsub = onSnapshot(
+      doc(db, "withdrawals", docId),
+      (snap) => {
+        if (snap.exists()) {
+          requestsMap[docId] = { _docId: docId, ...snap.data() };
+          rerender();
+        }
+      },
+      (err) => { console.warn("onSnapshot error for", docId, err.message); }
+    );
+    allUnsubs.push(unsub);
+  });
+
+  // Store a single cleanup function
+  userRequestsUnsub = () => allUnsubs.forEach(u => u());
 };
 
 // ═══════════ ADMIN — GENERATE OTP ═══════════

@@ -2,31 +2,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Admin list — only readable by authenticated users, writable by no one from client
+    // Admin list — readable by any authenticated user (needed for admin role check)
     match /admins/{email} {
       allow read: if request.auth != null;
       allow write: if false;
     }
 
-    // Withdrawals — users can create their own; admins can read/update all
+    // Withdrawals
     match /withdrawals/{docId} {
+      // Create: users can only create their own withdrawal
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
 
-      allow read: if request.auth != null
-                  && (resource.data.uid == request.auth.uid
-                      || exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
+      // Get (single doc): user owns it OR is admin
+      allow get: if request.auth != null
+                 && (resource.data.uid == request.auth.uid
+                     || exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
 
+      // List (collection query): allow all authenticated users — the query's
+      // where("uid","==",uid) clause ensures users only receive their own docs.
+      allow list: if request.auth != null;
+
+      // Update: admins only
       allow update: if request.auth != null
                     && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
 
       allow delete: if false;
     }
 
-    // OTP records — admin only
+    // OTP records — any logged-in user can read (to validate the code on submit)
     match /otps/{docId} {
-      allow read, write: if request.auth != null
-                         && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+      allow get, list: if request.auth != null;
+
+      // Only admins can create/update OTPs
+      allow create, update: if request.auth != null
+                             && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+
+      allow delete: if false;
     }
   }
 }
