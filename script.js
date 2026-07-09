@@ -685,7 +685,7 @@ window.renderAdmin = async function() {
   } catch (err) {
     console.error(err);
     document.getElementById("admin-table-wrap").innerHTML =
-      `<div class="empty-state">Failed to load data. Check Firestore rules.</div>`;
+      `<div class="empty-state">Failed to load data.<br/><span style="font-family:monospace;font-size:11px;opacity:0.7;">${escHtml(err.code || "")} — ${escHtml(err.message || "")}</span></div>`;
   }
 };
 
