@@ -34,9 +34,17 @@ service cloud.firestore {
     match /otps/{docId} {
       allow get, list: if request.auth != null;
 
-      // Only admins can create/update OTPs
-      allow create, update: if request.auth != null
-                             && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+      // Only admins can create new OTPs
+      allow create: if request.auth != null
+                    && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+
+      // Update: admins can update anything. Regular users may only mark an
+      // unused OTP as used (needed when they verify the code on submit).
+      allow update: if request.auth != null
+                    && (exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+                        || (resource.data.used == false
+                            && request.resource.data.used == true
+                            && request.resource.data.code == resource.data.code));
 
       allow delete: if false;
     }
