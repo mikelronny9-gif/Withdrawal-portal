@@ -739,16 +739,18 @@ function renderTable(allData) {
     const declineDis  = r.status === "declined"   ? "disabled" : "";
 
     return `<tr>
-      <td class="td-ref">${escHtml(r.id || r._docId)}</td>
-      <td>${typeBadge}</td>
-      <td>
-        <div class="td-name">${nameOrWallet}</div>${info}
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(r.submittedBy || "")}</div>
+      <td class="td-ref" data-label="Ref ID">${escHtml(r.id || r._docId)}</td>
+      <td data-label="Type">${typeBadge}</td>
+      <td data-label="Account">
+        <div>
+          <div class="td-name">${nameOrWallet}</div>${info}
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(r.submittedBy || "")}</div>
+        </div>
       </td>
-      <td class="td-amount">$${parseFloat(d.amount || 0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-      <td><div>${badge}</div>${reasonRow}</td>
-      <td style="font-size:12px;color:var(--text-muted);">${formatDate(r.submittedAt)}</td>
-      <td>
+      <td class="td-amount" data-label="Amount">$${parseFloat(d.amount || 0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td data-label="Status"><div>${badge}${reasonRow}</div></td>
+      <td data-label="Submitted" style="font-size:12px;color:var(--text-muted);">${formatDate(r.submittedAt)}</td>
+      <td class="td-actions-cell" data-label="Actions">
         <div class="action-btns">
           <button class="action-btn btn-approve" ${approveDis} onclick="updateStatus('${docId}','approved')">✓ Approve</button>
           <button class="action-btn btn-process" ${processDis} onclick="updateStatus('${docId}','processing')">⟳ Process</button>
