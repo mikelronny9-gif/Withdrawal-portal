@@ -170,13 +170,46 @@
               </div>
               <div class="divider"></div>
               <div class="form-group">
-                <label for="bank-amount">Withdrawal Amount</label>
+                <label for="bank-amount">Withdrawal Amount (USD)</label>
                 <div class="amount-wrapper">
                   <span class="amount-prefix">$</span>
-                  <input type="number" id="bank-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" />
+                  <input type="number" id="bank-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" oninput="convertAmount('bank')" />
                 </div>
                 <div class="field-error" id="err-bank-amount">Please enter a valid amount.</div>
               </div>
+
+              <!-- Currency converter -->
+              <div class="converter-box">
+                <div class="converter-label">See equivalent in your currency</div>
+                <div class="converter-row">
+                  <select id="bank-currency-select" onchange="convertAmount('bank')">
+                    <option value="">Select currency…</option>
+                    <option value="NGN">🇳🇬 Nigerian Naira (NGN)</option>
+                    <option value="GHS">🇬🇭 Ghanaian Cedi (GHS)</option>
+                    <option value="KES">🇰🇪 Kenyan Shilling (KES)</option>
+                    <option value="ZAR">🇿🇦 South African Rand (ZAR)</option>
+                    <option value="UGX">🇺🇬 Ugandan Shilling (UGX)</option>
+                    <option value="TZS">🇹🇿 Tanzanian Shilling (TZS)</option>
+                    <option value="XOF">🌍 West African CFA (XOF)</option>
+                    <option value="GBP">🇬🇧 British Pound (GBP)</option>
+                    <option value="EUR">🇪🇺 Euro (EUR)</option>
+                    <option value="CAD">🇨🇦 Canadian Dollar (CAD)</option>
+                    <option value="AUD">🇦🇺 Australian Dollar (AUD)</option>
+                    <option value="INR">🇮🇳 Indian Rupee (INR)</option>
+                    <option value="PKR">🇵🇰 Pakistani Rupee (PKR)</option>
+                    <option value="BDT">🇧🇩 Bangladeshi Taka (BDT)</option>
+                    <option value="PHP">🇵🇭 Philippine Peso (PHP)</option>
+                    <option value="MXN">🇲🇽 Mexican Peso (MXN)</option>
+                    <option value="BRL">🇧🇷 Brazilian Real (BRL)</option>
+                    <option value="AED">🇦🇪 UAE Dirham (AED)</option>
+                    <option value="SAR">🇸🇦 Saudi Riyal (SAR)</option>
+                    <option value="CNY">🇨🇳 Chinese Yuan (CNY)</option>
+                    <option value="JPY">🇯🇵 Japanese Yen (JPY)</option>
+                  </select>
+                  <div class="converter-result" id="bank-conv-result"></div>
+                </div>
+              </div>
+
               <button class="btn btn-primary" onclick="submitForm('bank')">
                 <div class="spinner" id="spinner-bank"></div>
                 <span id="btn-bank-text">Submit Withdrawal</span>
@@ -224,13 +257,46 @@
               </div>
               <div class="divider"></div>
               <div class="form-group">
-                <label for="crypto-amount">Withdrawal Amount</label>
+                <label for="crypto-amount">Withdrawal Amount (USD)</label>
                 <div class="amount-wrapper">
                   <span class="amount-prefix">$</span>
-                  <input type="number" id="crypto-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" />
+                  <input type="number" id="crypto-amount" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" oninput="convertAmount('crypto')" />
                 </div>
                 <div class="field-error" id="err-crypto-amount">Please enter a valid amount.</div>
               </div>
+
+              <!-- Currency converter -->
+              <div class="converter-box">
+                <div class="converter-label">See equivalent in your currency</div>
+                <div class="converter-row">
+                  <select id="crypto-currency-select" onchange="convertAmount('crypto')">
+                    <option value="">Select currency…</option>
+                    <option value="NGN">🇳🇬 Nigerian Naira (NGN)</option>
+                    <option value="GHS">🇬🇭 Ghanaian Cedi (GHS)</option>
+                    <option value="KES">🇰🇪 Kenyan Shilling (KES)</option>
+                    <option value="ZAR">🇿🇦 South African Rand (ZAR)</option>
+                    <option value="UGX">🇺🇬 Ugandan Shilling (UGX)</option>
+                    <option value="TZS">🇹🇿 Tanzanian Shilling (TZS)</option>
+                    <option value="XOF">🌍 West African CFA (XOF)</option>
+                    <option value="GBP">🇬🇧 British Pound (GBP)</option>
+                    <option value="EUR">🇪🇺 Euro (EUR)</option>
+                    <option value="CAD">🇨🇦 Canadian Dollar (CAD)</option>
+                    <option value="AUD">🇦🇺 Australian Dollar (AUD)</option>
+                    <option value="INR">🇮🇳 Indian Rupee (INR)</option>
+                    <option value="PKR">🇵🇰 Pakistani Rupee (PKR)</option>
+                    <option value="BDT">🇧🇩 Bangladeshi Taka (BDT)</option>
+                    <option value="PHP">🇵🇭 Philippine Peso (PHP)</option>
+                    <option value="MXN">🇲🇽 Mexican Peso (MXN)</option>
+                    <option value="BRL">🇧🇷 Brazilian Real (BRL)</option>
+                    <option value="AED">🇦🇪 UAE Dirham (AED)</option>
+                    <option value="SAR">🇸🇦 Saudi Riyal (SAR)</option>
+                    <option value="CNY">🇨🇳 Chinese Yuan (CNY)</option>
+                    <option value="JPY">🇯🇵 Japanese Yen (JPY)</option>
+                  </select>
+                  <div class="converter-result" id="crypto-conv-result"></div>
+                </div>
+              </div>
+
               <button class="btn btn-primary" onclick="submitForm('crypto')">
                 <div class="spinner" id="spinner-crypto"></div>
                 <span id="btn-crypto-text">Submit Withdrawal</span>

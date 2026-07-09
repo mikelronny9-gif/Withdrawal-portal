@@ -470,6 +470,54 @@ window.resetForm = function() {
   switchTab("bank");
 };
 
+// ═══════════ CURRENCY CONVERTER ═══════════
+let _fxRates     = null;
+let _fxFetchedAt = 0;
+
+async function getFxRates() {
+  const now = Date.now();
+  if (_fxRates && (now - _fxFetchedAt) < 30 * 60 * 1000) return _fxRates;
+  try {
+    const res  = await fetch("https://open.er-api.com/v6/latest/USD");
+    const json = await res.json();
+    if (json.rates) {
+      _fxRates     = json.rates;
+      _fxFetchedAt = now;
+    }
+  } catch (e) {
+    console.warn("FX fetch failed:", e.message);
+  }
+  return _fxRates;
+}
+
+window.convertAmount = async function(panel) {
+  const amtId    = panel === "bank" ? "bank-amount"          : "crypto-amount";
+  const selId    = panel === "bank" ? "bank-currency-select" : "crypto-currency-select";
+  const resId    = panel === "bank" ? "bank-conv-result"     : "crypto-conv-result";
+  const amountEl = document.getElementById(amtId);
+  const selEl    = document.getElementById(selId);
+  const resEl    = document.getElementById(resId);
+  if (!resEl) return;
+
+  const usd      = parseFloat(amountEl?.value);
+  const currency = selEl?.value;
+  if (!usd || usd <= 0 || !currency) { resEl.innerHTML = ""; return; }
+
+  resEl.innerHTML = `<span class="conv-loading">Converting…</span>`;
+  const rates = await getFxRates();
+  if (!rates || !rates[currency]) { resEl.innerHTML = ""; return; }
+
+  const converted = (usd * rates[currency]).toLocaleString("en-US", {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+  resEl.innerHTML = `
+    <div class="conv-result">
+      <span class="conv-equals">≈</span>
+      <span class="conv-amount">${converted}</span>
+      <span class="conv-code">${currency}</span>
+    </div>`;
+};
+
 // ═══════════ USER — MY REQUESTS (real-time listener) ═══════════
 function renderUserRequests(data) {
   const container = document.getElementById("user-requests-container");
@@ -510,41 +558,30 @@ function renderUserRequests(data) {
 }
 
 // ── loadUserRequests ──
-// Uses localStorage (keyed by uid) to store docIds, then sets up a
-// per-document onSnapshot for each one. This uses "get" permission only,
-// which works with ANY version of the Firestore rules — no "list" rule needed.
+// Strategy: try collection-level onSnapshot first (picks up ALL requests).
+// If Firestore rules deny it, fall back to per-document onSnapshot using
+// docIds saved in localStorage. Either way users see live status changes.
 window.loadUserRequests = function() {
-  // Cancel all existing listeners
   if (userRequestsUnsub) { userRequestsUnsub(); userRequestsUnsub = null; }
 
   const container = document.getElementById("user-requests-container");
   if (!container || !currentUser) return;
-
-  const lsKey  = `wp_reqs_${currentUser.uid}`;
-  const docIds = JSON.parse(localStorage.getItem(lsKey) || "[]");
-
-  if (docIds.length === 0) {
-    container.innerHTML = `<div class="ur-empty">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      No requests yet. Submit your first withdrawal above.
-    </div>`;
-    return;
-  }
-
   container.innerHTML = `<div class="ur-loading"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px;"></div></div>`;
 
-  // Live map of docId → data; re-renders on every change
+  const lsKey      = `wp_reqs_${currentUser.uid}`;
   const requestsMap = {};
   const allUnsubs   = [];
 
   function rerender() {
     const data = Object.values(requestsMap)
+      .filter(r => r && r._docId)
       .sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0));
     renderUserRequests(data);
   }
 
-  // Subscribe to each document individually — uses "get" permission (always allowed)
-  docIds.forEach(docId => {
+  // ── Per-doc listener (always works, uses "get" permission) ──
+  function subscribeDoc(docId) {
+    if (allUnsubs[docId]) return; // already watching
     const unsub = onSnapshot(
       doc(db, "withdrawals", docId),
       (snap) => {
@@ -553,13 +590,40 @@ window.loadUserRequests = function() {
           rerender();
         }
       },
-      (err) => { console.warn("onSnapshot error for", docId, err.message); }
+      (err) => console.warn("doc listener:", docId, err.code)
     );
-    allUnsubs.push(unsub);
-  });
+    allUnsubs[docId] = unsub;
+  }
 
-  // Store a single cleanup function
-  userRequestsUnsub = () => allUnsubs.forEach(u => u());
+  // Kick off listeners for any doc IDs already in localStorage
+  const savedIds = JSON.parse(localStorage.getItem(lsKey) || "[]");
+  savedIds.forEach(id => subscribeDoc(id));
+  if (savedIds.length === 0) rerender(); // show empty state immediately
+
+  // ── Collection query (bonus: discovers requests from other devices/browsers) ──
+  const q = query(collection(db, "withdrawals"), where("uid", "==", currentUser.uid));
+  const collUnsub = onSnapshot(q,
+    (snap) => {
+      // Save any new docIds to localStorage for future offline fallback
+      const existing = JSON.parse(localStorage.getItem(lsKey) || "[]");
+      let changed = false;
+      snap.docs.forEach(d => {
+        if (!existing.includes(d.id)) { existing.unshift(d.id); changed = true; }
+        requestsMap[d.id] = { _docId: d.id, ...d.data() };
+        subscribeDoc(d.id); // ensure per-doc listener is active too
+      });
+      if (changed) localStorage.setItem(lsKey, JSON.stringify(existing));
+      rerender();
+    },
+    (err) => {
+      // Likely a rules/permission error — per-doc fallback already running
+      console.warn("Collection query denied (falling back to localStorage):", err.code);
+      if (savedIds.length === 0) rerender(); // show empty if nothing in localStorage
+    }
+  );
+  allUnsubs["__collection__"] = collUnsub;
+
+  userRequestsUnsub = () => Object.values(allUnsubs).forEach(u => typeof u === "function" && u());
 };
 
 // ═══════════ ADMIN — GENERATE OTP ═══════════
